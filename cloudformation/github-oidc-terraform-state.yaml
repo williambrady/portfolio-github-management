@@ -1,0 +1,185 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  GitHub OIDC integration for Terraform state management.
+  Creates an OIDC provider, S3 bucket for state, and IAM role with trust policy.
+
+Parameters:
+  GitHubOrg:
+    Type: String
+    Default: williambrady
+    Description: GitHub organization or username
+
+  GitHubRepo:
+    Type: String
+    Default: portfolio-github-management
+    Description: GitHub repository name
+
+  StateBucketName:
+    Type: String
+    Default: williambrady-terraform-state-918573727633
+    Description: Name for the S3 bucket storing Terraform state
+
+  OIDCProviderArn:
+    Type: String
+    Default: ""
+    Description: |
+      ARN of existing GitHub OIDC provider. Leave empty to create a new one.
+      If you have multiple repos using OIDC, provide the existing ARN.
+
+Conditions:
+  CreateOIDCProvider: !Equals [!Ref OIDCProviderArn, ""]
+
+Resources:
+  # GitHub OIDC Identity Provider
+  GitHubOIDCProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: CreateOIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        # GitHub's OIDC thumbprint - this is stable and managed by GitHub
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+        - 1c58a3a8518e8759bf075b76b750d4f2df264fcd
+      Tags:
+        - Key: Purpose
+          Value: GitHub Actions OIDC
+
+  # S3 Bucket for Terraform State
+  TerraformStateBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Ref StateBucketName
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 90
+          - Id: AbortIncompleteMultipartUpload
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+      Tags:
+        - Key: Purpose
+          Value: Terraform State Storage
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # S3 Bucket Policy
+  TerraformStateBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref TerraformStateBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: EnforceTLS
+            Effect: Deny
+            Principal: '*'
+            Action: s3:*
+            Resource:
+              - !GetAtt TerraformStateBucket.Arn
+              - !Sub '${TerraformStateBucket.Arn}/*'
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+
+  # IAM Role for GitHub Actions
+  GitHubActionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'github-actions-${GitHubRepo}'
+      Description: !Sub 'Role for GitHub Actions in ${GitHubOrg}/${GitHubRepo}'
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - CreateOIDCProvider
+                - !GetAtt GitHubOIDCProvider.Arn
+                - !Ref OIDCProviderArn
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              StringLike:
+                token.actions.githubusercontent.com:sub: !Sub 'repo:${GitHubOrg}/${GitHubRepo}:*'
+      Policies:
+        - PolicyName: TerraformStateAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: S3StateAccess
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt TerraformStateBucket.Arn
+                  - !Sub '${TerraformStateBucket.Arn}/*'
+      Tags:
+        - Key: Purpose
+          Value: GitHub Actions Terraform
+        - Key: Repository
+          Value: !Sub '${GitHubOrg}/${GitHubRepo}'
+
+Outputs:
+  OIDCProviderArn:
+    Description: ARN of the GitHub OIDC Provider (use this for additional repos)
+    Value: !If
+      - CreateOIDCProvider
+      - !GetAtt GitHubOIDCProvider.Arn
+      - !Ref OIDCProviderArn
+    Export:
+      Name: GitHubOIDCProviderArn
+
+  StateBucketName:
+    Description: Name of the S3 bucket for Terraform state
+    Value: !Ref TerraformStateBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-StateBucketName'
+
+  StateBucketArn:
+    Description: ARN of the S3 bucket for Terraform state
+    Value: !GetAtt TerraformStateBucket.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-StateBucketArn'
+
+  GitHubActionsRoleArn:
+    Description: ARN of the IAM role for GitHub Actions
+    Value: !GetAtt GitHubActionsRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-GitHubActionsRoleArn'
+
+  TerraformBackendConfig:
+    Description: Terraform backend configuration to add to your backend.tf
+    Value: !Sub |
+      terraform {
+        backend "s3" {
+          bucket       = "${TerraformStateBucket}"
+          key          = "${GitHubRepo}/terraform.tfstate"
+          region       = "${AWS::Region}"
+          use_lockfile = true
+          encrypt      = true
+        }
+      }

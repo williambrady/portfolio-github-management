@@ -1,0 +1,48 @@
+repos:
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.83.6
+    hooks:
+      - id: terraform_fmt
+        name: Terraform Format
+        description: Rewrites all Terraform configuration files to a canonical format.
+        args:
+          - --args=-recursive
+
+      - id: terraform_validate
+        name: Terraform Validate
+        description: Validates all Terraform configuration files.
+
+      - id: terraform_docs
+        name: Terraform Docs
+        description: Generate documentation for Terraform modules.
+        args:
+          - --args=--config=.terraform-docs.yml
+
+      - id: terraform_tflint
+        name: TFLint
+        description: Linter for Terraform source code.
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim Trailing Whitespace
+      - id: end-of-file-fixer
+        name: Fix End of Files
+      - id: check-yaml
+        name: Check YAML
+      - id: check-added-large-files
+        name: Check for Large Files
+      - id: check-merge-conflict
+        name: Check for Merge Conflicts
+
+  - repo: local
+    hooks:
+      - id: terraform-plan
+        name: Terraform Plan
+        entry: bash -c 'cd terraform && terraform init -backend=false && terraform plan -input=false'
+        language: system
+        files: '^terraform/.*\.tf$'
+        pass_filenames: false
+        description: Run terraform plan locally before commit
+

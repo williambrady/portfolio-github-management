@@ -1,0 +1,94 @@
+# GitHub Repository Management Configuration
+# This file defines defaults and per-repository overrides
+
+defaults:
+  # Visibility: public, private, or internal (for organizations)
+  visibility: private
+
+  # Repository features
+  has_issues: true
+  has_discussions: false
+  has_projects: true
+  has_wiki: true
+  has_downloads: true
+
+  # Template settings
+  is_template: false
+
+  # Merge settings
+  allow_merge_commit: true
+  allow_squash_merge: true
+  allow_rebase_merge: true
+  allow_auto_merge: false
+  delete_branch_on_merge: true
+  allow_update_branch: true
+  squash_merge_commit_title: "COMMIT_OR_PR_TITLE"
+  squash_merge_commit_message: "COMMIT_MESSAGES"
+  merge_commit_title: "MERGE_MESSAGE"
+  merge_commit_message: "PR_TITLE"
+
+  # Security settings
+  vulnerability_alerts: true
+
+  # Archive settings
+  archived: false
+
+  # Auto-initialize with README
+  auto_init: true
+
+  # Default branch name
+  default_branch: main
+
+  # Branch protection settings
+  branch_protection_enabled: false
+  dismiss_stale_reviews: true
+  require_code_owner_reviews: false
+  required_approving_review_count: 1
+  require_branches_up_to_date: true
+  required_status_checks: []
+  enforce_admins: false
+  allows_force_pushes: false
+  allows_deletions: false
+  require_conversation_resolution: true
+
+# Repository definitions
+# Each repository inherits from defaults and can override any setting
+repositories:
+  - name: portfolio-code-scanner
+    description: "Code scanning and security analysis tools"
+    visibility: public
+    topics:
+      - security
+      - code-scanning
+      - sast
+    has_wiki: false
+
+  - name: portfolio-github-management
+    description: "GitHub repository management via Terraform"
+    visibility: public
+    topics:
+      - terraform
+      - github
+      - infrastructure-as-code
+      - iac
+    has_wiki: false
+    has_discussions: false
+
+  - name: portfolio-template-sdlc
+    description: "SDLC template repository"
+    visibility: public
+    is_template: true
+    topics:
+      - template
+      - sdlc
+    has_wiki: false
+
+  - name: portfolio-github-example
+    description: "Example repository managed by Terraform"
+    visibility: public
+    topics:
+      - terraform
+      - github-management
+      - example
+    has_issues: true
+    has_wiki: false
