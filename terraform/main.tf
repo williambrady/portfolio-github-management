@@ -93,3 +93,24 @@ resource "github_branch_protection" "main" {
   require_conversation_resolution = lookup(each.value, "require_conversation_resolution", true)
 }
 
+# Repository collaborators
+resource "github_repository_collaborator" "managed" {
+  for_each = local.repository_collaborators
+
+  repository = github_repository.managed[each.value.repository].name
+  username   = each.value.username
+  permission = each.value.permission
+}
+
+# CODEOWNERS files
+resource "github_repository_file" "codeowners" {
+  for_each = local.repositories_with_codeowners
+
+  repository          = github_repository.managed[each.key].name
+  branch              = lookup(each.value, "default_branch", "main")
+  file                = ".github/CODEOWNERS"
+  content             = each.value.codeowners
+  commit_message      = "Manage CODEOWNERS via Terraform"
+  overwrite_on_create = true
+}
+

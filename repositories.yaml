@@ -39,6 +39,20 @@ defaults:
   # Default branch name
   default_branch: main
 
+  # Default collaborators
+  # Note: Repository owner (williambrady) automatically has admin access
+  # Permission levels for personal repos: admin, push, pull
+  # (maintain and triage are only available for organization repos)
+  collaborators:
+    - username: ghaworkflow
+      permission: push
+
+  # CODEOWNERS configuration
+  # Set to null or omit to disable CODEOWNERS for a repo
+  codeowners: |
+    # Default code owners for all files
+    * @williambrady @ghaworkflow
+
   # Branch protection settings
   branch_protection_enabled: false
   dismiss_stale_reviews: true
@@ -73,6 +87,7 @@ repositories:
       - iac
     has_wiki: false
     has_discussions: false
+    codeowners: null  # Managed locally in the repo
 
   - name: portfolio-template-sdlc
     description: "SDLC template repository"
