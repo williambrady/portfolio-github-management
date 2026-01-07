@@ -26,10 +26,5 @@ locals {
     }
   ]...)
 
-  # Filter repositories that have CODEOWNERS configured
-  repositories_with_codeowners = {
-    for name, repo in local.repositories : name => repo
-    if lookup(repo, "codeowners", null) != null && lookup(repo, "codeowners", "") != ""
-  }
 }
 
