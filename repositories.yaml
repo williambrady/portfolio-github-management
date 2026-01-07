@@ -81,6 +81,7 @@ repositories:
       - iac
     has_wiki: false
     has_discussions: false
+    branch_protection_enabled: true
 
   - name: portfolio-template-sdlc
     description: "SDLC template repository"
