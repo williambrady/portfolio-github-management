@@ -9,7 +9,7 @@ defaults:
   has_issues: true
   has_discussions: false
   has_projects: true
-  has_wiki: true
+  has_wiki: false
   has_downloads: true
 
   # Template settings
@@ -50,11 +50,11 @@ defaults:
   # Branch protection settings
   branch_protection_enabled: false
   dismiss_stale_reviews: true
-  require_code_owner_reviews: false
+  require_code_owner_reviews: true
   required_approving_review_count: 1
   require_branches_up_to_date: true
   required_status_checks: []
-  enforce_admins: false
+  enforce_admins: true
   allows_force_pushes: false
   allows_deletions: false
   require_conversation_resolution: true
@@ -66,43 +66,37 @@ repositories:
     description: "Code scanning and security analysis tools"
     visibility: public
     topics:
+      - portfolio
       - security
       - code-scanning
       - sast
-    has_wiki: false
-    branch_protection_enabled: true
-    require_code_owner_reviews: true
 
   - name: portfolio-github-management
     description: "GitHub repository management via Terraform"
     visibility: public
     topics:
+      - portfolio
       - terraform
       - github
       - infrastructure-as-code
       - iac
-    has_wiki: false
     has_discussions: false
-    branch_protection_enabled: true
-    require_code_owner_reviews: true
 
   - name: portfolio-template-sdlc
     description: "SDLC template repository"
     visibility: public
     is_template: true
     topics:
+      - portfolio
       - template
       - sdlc
-    has_wiki: false
-    branch_protection_enabled: true
-    require_code_owner_reviews: true
 
   - name: portfolio-github-example
     description: "Example repository managed by Terraform"
     visibility: public
     topics:
+      - portfolio
       - terraform
       - github-management
       - example
     has_issues: true
-    has_wiki: false
