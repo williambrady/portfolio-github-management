@@ -70,6 +70,8 @@ repositories:
       - code-scanning
       - sast
     has_wiki: false
+    branch_protection_enabled: true
+    require_code_owner_reviews: true
 
   - name: portfolio-github-management
     description: "GitHub repository management via Terraform"
@@ -92,6 +94,8 @@ repositories:
       - template
       - sdlc
     has_wiki: false
+    branch_protection_enabled: true
+    require_code_owner_reviews: true
 
   - name: portfolio-github-example
     description: "Example repository managed by Terraform"
