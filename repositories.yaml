@@ -82,15 +82,6 @@ repositories:
       - iac
     has_discussions: false
 
-  - name: portfolio-template-sdlc
-    description: "SDLC template repository"
-    visibility: public
-    is_template: true
-    topics:
-      - portfolio
-      - template
-      - sdlc
-
   - name: portfolio-github-example
     description: "Example repository managed by Terraform"
     visibility: public
