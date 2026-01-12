@@ -41,17 +41,6 @@ jobs:
           sarif_file: ${{ steps.security-scan.outputs.sarif-path }}
           category: 'sdlc-code-scanner'
 
-      - name: Debug Report Directory
-        if: always()
-        run: |
-          echo "Report path output: '${{ steps.security-scan.outputs.report-path }}'"
-          echo "SARIF path output: '${{ steps.security-scan.outputs.sarif-path }}'"
-          echo "Current directory: $(pwd)"
-          echo "Listing workspace:"
-          ls -la
-          echo "Checking .sdlc-code-scanner-reports:"
-          ls -la .sdlc-code-scanner-reports/ 2>/dev/null || echo "Directory not found"
-
       - name: Upload Scan Reports
         uses: actions/upload-artifact@v4
         if: always() && steps.security-scan.outputs.report-path != ''
