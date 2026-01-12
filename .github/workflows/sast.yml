@@ -1,0 +1,96 @@
+name: SAST Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run SDLC Code Scanner
+        id: security-scan
+        uses: williambrady/portfolio-code-scanner@v1
+        with:
+          scan-path: '.'
+          output-formats: 'json,html,markdown,sarif'
+          fail-on-severity: 'HIGH'
+          verbose: 'false'
+
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && steps.security-scan.outputs.sarif-path != ''
+        with:
+          sarif_file: ${{ steps.security-scan.outputs.sarif-path }}
+          category: 'sdlc-code-scanner'
+
+      - name: Upload Scan Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-scan-reports
+          path: .sdlc-code-scanner-reports/
+          retention-days: 30
+
+      - name: Post Scan Summary
+        if: always()
+        run: |
+          echo "### Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Critical | ${{ steps.security-scan.outputs.critical-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| High | ${{ steps.security-scan.outputs.high-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Medium | ${{ steps.security-scan.outputs.medium-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Low | ${{ steps.security-scan.outputs.low-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Total** | **${{ steps.security-scan.outputs.findings-count }}** |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment PR with Results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const findings = '${{ steps.security-scan.outputs.findings-count }}';
+            const critical = '${{ steps.security-scan.outputs.critical-count }}';
+            const high = '${{ steps.security-scan.outputs.high-count }}';
+            const medium = '${{ steps.security-scan.outputs.medium-count }}';
+            const low = '${{ steps.security-scan.outputs.low-count }}';
+            const status = '${{ steps.security-scan.outputs.scan-status }}';
+
+            const statusEmoji = status === 'passed' ? ':white_check_mark:' : ':x:';
+
+            const body = `## SDLC Code Scanner Security Scan ${statusEmoji}
+
+            | Severity | Count |
+            |----------|-------|
+            | Critical | ${critical} |
+            | High | ${high} |
+            | Medium | ${medium} |
+            | Low | ${low} |
+            | **Total** | **${findings}** |
+
+            *View the full report in the [Actions artifacts](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})*
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
