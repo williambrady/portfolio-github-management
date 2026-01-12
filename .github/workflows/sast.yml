@@ -41,12 +41,30 @@ jobs:
           sarif_file: ${{ steps.security-scan.outputs.sarif-path }}
           category: 'sdlc-code-scanner'
 
+      - name: Prepare Reports for Upload
+        if: always()
+        run: |
+          REPORT_DIR="${{ steps.security-scan.outputs.report-path }}"
+          if [[ -z "$REPORT_DIR" ]]; then
+            REPORT_DIR=".sdlc-code-scanner-reports"
+          fi
+          echo "Report directory: $REPORT_DIR"
+          if [[ -d "$REPORT_DIR" ]]; then
+            echo "Contents:"
+            ls -la "$REPORT_DIR"
+            # Ensure files are flushed and readable
+            sync
+          else
+            echo "Report directory not found"
+          fi
+
       - name: Upload Scan Reports
         uses: actions/upload-artifact@v4
         if: always() && steps.security-scan.outputs.report-path != ''
         with:
           name: security-scan-reports
           path: ${{ steps.security-scan.outputs.report-path }}
+          include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30
 
@@ -180,4 +198,3 @@ jobs:
               repo: context.repo.repo,
               body: body
             });
-# Trigger rebuild
