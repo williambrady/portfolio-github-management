@@ -91,3 +91,15 @@ repositories:
       - github-management
       - example
     has_issues: true
+
+  - name: portfolio-template-iac
+    description: "IaC template repository"
+    visibility: public
+    topics:
+      - portfolio
+      - template
+      - iac
+      - terraform
+      - cloudformation
+      - sdlc
+    is_template: true
