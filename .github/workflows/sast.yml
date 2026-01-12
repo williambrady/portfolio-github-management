@@ -141,13 +141,18 @@ jobs:
               for i, f in enumerate(findings[:5]):
                   sev = f.get('severity', 'INFO')
                   tool = f.get('tool', 'unknown')
+                  rule_id = f.get('rule_id', '')
                   title = f.get('title', f.get('rule_id', 'Unknown'))
                   file_path = f.get('file_path', 'N/A')
                   line = f.get('line_number')
+                  resource = f.get('resource', '')
                   loc = f'{file_path}:{line}' if line is not None else file_path
                   emoji = {'CRITICAL': ':red_circle:', 'HIGH': ':orange_circle:', 'MEDIUM': ':yellow_circle:', 'LOW': ':white_circle:'}.get(sev, ':white_circle:')
-                  lines.append(f'{i+1}. {emoji} **{sev}** [{tool}] {title}')
-                  lines.append(f'   \`{loc}\`')
+                  lines.append(f'{i+1}. {emoji} **{sev}** - {title}')
+                  lines.append(f'   - **Tool:** {tool} | **Rule:** \`{rule_id}\`')
+                  lines.append(f'   - **Location:** \`{loc}\`')
+                  if resource:
+                      lines.append(f'   - **Resource:** \`{resource}\`')
 
           # Output as JSON-encoded string to safely pass to JavaScript
           print(json.dumps('\\n'.join(lines)))
