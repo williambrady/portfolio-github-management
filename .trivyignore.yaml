@@ -1,8 +1,0 @@
-misconfigurations:
-  - id: AVD-AWS-0057
-    paths:
-      - "cloudformation/github-oidc-terraform-state.yaml"
-    statement: |
-      The wildcard (*) in the OIDC subject claim is required to allow
-      any branch/ref/action to assume the role - this is the AWS-recommended
-      pattern for GitHub OIDC integration.
