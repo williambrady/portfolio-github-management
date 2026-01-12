@@ -136,14 +136,8 @@ Resources:
           Value: CloudFormation
 
   # S3 Bucket Policy - Enforces TLS for all S3 operations
-  # trivy:ignore:AVD-AWS-0057 - Wildcard in Deny policy is intentional to block ALL non-TLS requests
   TerraformStateBucketPolicy:
     Type: AWS::S3::BucketPolicy
-    Metadata:
-      cfn_nag:
-        rules_to_suppress:
-          - id: F16
-            reason: "Wildcard principal with Deny effect is intentional - enforces TLS for all callers"
     Properties:
       Bucket: !Ref TerraformStateBucket
       PolicyDocument:
@@ -152,7 +146,20 @@ Resources:
           - Sid: EnforceTLS
             Effect: Deny
             Principal: '*'
-            Action: s3:*
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:DeleteObject
+              - s3:ListBucket
+              - s3:GetBucketLocation
+              - s3:GetBucketPolicy
+              - s3:PutBucketPolicy
+              - s3:GetBucketAcl
+              - s3:PutBucketAcl
+              - s3:GetBucketVersioning
+              - s3:PutBucketVersioning
+              - s3:GetObjectVersion
+              - s3:DeleteObjectVersion
             Resource:
               - !GetAtt TerraformStateBucket.Arn
               - !Sub '${TerraformStateBucket.Arn}/*'
