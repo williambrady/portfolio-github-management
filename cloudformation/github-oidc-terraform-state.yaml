@@ -94,6 +94,12 @@ Resources:
   # S3 Bucket for Terraform State
   TerraformStateBucket:
     Type: AWS::S3::Bucket
+    # checkov:skip=CKV_AWS_18: "Access logging not required for Terraform state bucket in portfolio project"
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W35
+            reason: Access logging not required for Terraform state bucket in portfolio project
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
@@ -149,6 +155,11 @@ Resources:
   # IAM Role for GitHub Actions
   GitHubActionsRole:
     Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: Role name must be stable for GitHub OIDC trust and external references
     Properties:
       # trivy:ignore:AVD-AWS-0057
       RoleName: !Sub 'github-actions-${GitHubRepo}'
