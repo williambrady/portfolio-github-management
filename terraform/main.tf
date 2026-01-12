@@ -1,5 +1,10 @@
 # GitHub Repository Management
-# Creates and manages repositories based on repositories.yaml
+# Manages repositories based on repositories.yaml
+#
+# IMPORTANT: This configuration uses an import-only model.
+# GitHub Apps cannot create repositories in personal accounts.
+# Repositories must be created manually via GitHub UI, then imported:
+#   terraform import 'github_repository.managed["repo-name"]' repo-name
 
 # tfsec:ignore:AVD-GIT-0001 - Public visibility is intentional for portfolio repositories
 resource "github_repository" "managed" {
@@ -49,6 +54,9 @@ resource "github_repository" "managed" {
   license_template   = lookup(each.value, "license_template", null)
 
   lifecycle {
+    # Prevent accidental deletion of imported repositories
+    prevent_destroy = true
+
     ignore_changes = [
       # Ignore changes to auto_init after creation
       auto_init,

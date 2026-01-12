@@ -56,9 +56,19 @@ The project uses a YAML configuration pattern where `repositories.yaml` (at proj
 
 This is processed in `terraform/locals.tf` using `yamldecode()` and map merging, then consumed by `for_each` loops in `main.tf`.
 
+### Import-Only Model
+
+This project uses a GitHub App for authentication. GitHub Apps cannot create repositories in personal accounts - they can only manage existing repositories. Therefore:
+
+1. Repositories must be created manually via GitHub UI
+2. Imported into Terraform state: `terraform import 'github_repository.managed["repo-name"]' repo-name`
+3. Terraform then manages all settings going forward
+
+The `prevent_destroy` lifecycle rule protects imported repositories from accidental deletion.
+
 ### Key Terraform Resources
 
-- `github_repository.managed` - Creates/manages repos with 28+ configuration options
+- `github_repository.managed` - Manages repos with 28+ configuration options (import-only)
 - `github_branch_protection.main` - Conditionally applied when `branch_protection_enabled: true`
 
 ### AWS Prerequisites (CloudFormation)
@@ -76,13 +86,21 @@ This is processed in `terraform/locals.tf` using `yamldecode()` and map merging,
 
 ## Adding New Repositories
 
-Edit `repositories.yaml`:
+1. Create the repository manually at [github.com/new](https://github.com/new)
+2. Add to `repositories.yaml`:
 ```yaml
 repositories:
-  new-repo-name:
+  - name: new-repo-name
     description: "My new repository"
     visibility: public  # Override default (private)
     # Other settings inherit from defaults section
+```
+3. Import into Terraform:
+```bash
+cd terraform
+terraform import 'github_repository.managed["new-repo-name"]' new-repo-name
+terraform plan   # Verify
+terraform apply  # Apply settings
 ```
 
 ## Pre-commit Hooks

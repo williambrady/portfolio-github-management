@@ -194,7 +194,17 @@ main (production)
 
 ### Adding a New Repository
 
-Edit `repositories.yaml` to add a new repository:
+> **Note**: This project uses an **import-only model**. GitHub Apps cannot create repositories in personal accounts - they can only manage existing repositories. You must create the repository manually first, then import it into Terraform.
+
+#### Step 1: Create the Repository on GitHub
+
+1. Go to [github.com/new](https://github.com/new)
+2. Create the repository with basic settings (name, visibility)
+3. Note: Other settings will be managed by Terraform after import
+
+#### Step 2: Add to Configuration
+
+Edit `repositories.yaml`:
 
 ```yaml
 repositories:
@@ -207,6 +217,22 @@ repositories:
     has_issues: true
     has_wiki: false
 ```
+
+#### Step 3: Import into Terraform
+
+```bash
+cd terraform
+terraform import 'github_repository.managed["my-new-repo"]' my-new-repo
+```
+
+#### Step 4: Apply Configuration
+
+```bash
+terraform plan   # Verify changes look correct
+terraform apply  # Apply the configuration
+```
+
+Commit and push your changes to `repositories.yaml`.
 
 ### Configuration Options
 
@@ -228,18 +254,19 @@ All options have defaults defined in `repositories.yaml`. Override any setting p
 
 See `repositories.yaml` for the complete list of options.
 
-### Importing Existing Repositories
+### Removing a Repository from Management
 
-To import an existing repository into Terraform management:
+To stop managing a repository without deleting it:
 
-1. Add the repository to `repositories.yaml`
-2. Run the import command:
+1. Remove the repository from `repositories.yaml`
+2. Remove from Terraform state (does not delete the actual repo):
    ```bash
    cd terraform
-   terraform import 'github_repository.managed["repo-name"]' repo-name
+   terraform state rm 'github_repository.managed["repo-name"]'
    ```
-3. Run `terraform plan` to verify no unexpected changes
-4. Commit and push
+3. Commit and push
+
+> **Note**: The `prevent_destroy` lifecycle rule protects repositories from accidental deletion. If you truly need to delete a repository, you must do so manually via the GitHub UI after removing it from Terraform state.
 
 ## CI/CD Workflow
 
