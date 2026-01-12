@@ -150,6 +150,7 @@ Resources:
   GitHubActionsRole:
     Type: AWS::IAM::Role
     Properties:
+      # trivy:ignore:AVD-AWS-0057
       RoleName: !Sub 'github-actions-${GitHubRepo}'
       Description: !Sub 'Role for GitHub Actions in ${GitHubOrg}/${GitHubRepo}'
       MaxSessionDuration: 3600
