@@ -199,12 +199,9 @@ jobs:
 
             body += `*View the full report in the [Actions artifacts](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})*`;
 
-            console.log('Creating comment on issue:', context.issue.number);
-            console.log('Body length:', body.length);
-            const result = await github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: body
             });
-            console.log('Comment created:', result.data.html_url);
