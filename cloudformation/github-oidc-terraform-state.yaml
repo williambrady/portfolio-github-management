@@ -30,59 +30,6 @@ Conditions:
   CreateOIDCProvider: !Equals [!Ref OIDCProviderArn, ""]
 
 Resources:
-  # KMS Key for S3 Bucket Encryption
-  TerraformStateKMSKey:
-    Type: AWS::KMS::Key
-    Properties:
-      Description: !Sub 'KMS key for Terraform state bucket encryption (${GitHubRepo})'
-      EnableKeyRotation: true
-      KeyPolicy:
-        Version: '2012-10-17'
-        Statement:
-          - Sid: EnableRootAccountAccess
-            Effect: Allow
-            Principal:
-              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
-            Action:
-              - kms:Create*
-              - kms:Describe*
-              - kms:Enable*
-              - kms:List*
-              - kms:Put*
-              - kms:Update*
-              - kms:Revoke*
-              - kms:Disable*
-              - kms:Get*
-              - kms:Delete*
-              - kms:TagResource
-              - kms:UntagResource
-              - kms:ScheduleKeyDeletion
-              - kms:CancelKeyDeletion
-              - kms:Encrypt
-              - kms:Decrypt
-              - kms:ReEncrypt*
-              - kms:GenerateDataKey*
-            Resource: '*'
-          - Sid: AllowS3Service
-            Effect: Allow
-            Principal:
-              Service: s3.amazonaws.com
-            Action:
-              - kms:Decrypt
-              - kms:GenerateDataKey
-            Resource: '*'
-      Tags:
-        - Key: Purpose
-          Value: Terraform State Encryption
-        - Key: ManagedBy
-          Value: CloudFormation
-
-  TerraformStateKMSKeyAlias:
-    Type: AWS::KMS::Alias
-    Properties:
-      AliasName: !Sub 'alias/terraform-state-${GitHubRepo}'
-      TargetKeyId: !Ref TerraformStateKMSKey
-
   # GitHub OIDC Identity Provider
   GitHubOIDCProvider:
     Type: AWS::IAM::OIDCProvider
@@ -109,8 +56,7 @@ Resources:
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
-              SSEAlgorithm: aws:kms
-              KMSMasterKeyID: !GetAtt TerraformStateKMSKey.Arn
+              SSEAlgorithm: AES256
             BucketKeyEnabled: true
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
@@ -135,7 +81,7 @@ Resources:
         - Key: ManagedBy
           Value: CloudFormation
 
-  # S3 Bucket Policy - Enforces TLS for all S3 operations
+  # S3 Bucket Policy
   TerraformStateBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -146,20 +92,7 @@ Resources:
           - Sid: EnforceTLS
             Effect: Deny
             Principal: '*'
-            Action:
-              - s3:GetObject
-              - s3:PutObject
-              - s3:DeleteObject
-              - s3:ListBucket
-              - s3:GetBucketLocation
-              - s3:GetBucketPolicy
-              - s3:PutBucketPolicy
-              - s3:GetBucketAcl
-              - s3:PutBucketAcl
-              - s3:GetBucketVersioning
-              - s3:PutBucketVersioning
-              - s3:GetObjectVersion
-              - s3:DeleteObjectVersion
+            Action: s3:*
             Resource:
               - !GetAtt TerraformStateBucket.Arn
               - !Sub '${TerraformStateBucket.Arn}/*'
@@ -204,13 +137,6 @@ Resources:
                 Resource:
                   - !GetAtt TerraformStateBucket.Arn
                   - !Sub '${TerraformStateBucket.Arn}/*'
-              - Sid: KMSAccess
-                Effect: Allow
-                Action:
-                  - kms:Decrypt
-                  - kms:GenerateDataKey
-                Resource:
-                  - !GetAtt TerraformStateKMSKey.Arn
       Tags:
         - Key: Purpose
           Value: GitHub Actions Terraform
@@ -238,12 +164,6 @@ Outputs:
     Value: !GetAtt TerraformStateBucket.Arn
     Export:
       Name: !Sub '${AWS::StackName}-StateBucketArn'
-
-  KMSKeyArn:
-    Description: ARN of the KMS key for S3 bucket encryption
-    Value: !GetAtt TerraformStateKMSKey.Arn
-    Export:
-      Name: !Sub '${AWS::StackName}-KMSKeyArn'
 
   GitHubActionsRoleArn:
     Description: ARN of the IAM role for GitHub Actions
