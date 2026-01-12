@@ -43,7 +43,25 @@ Resources:
             Effect: Allow
             Principal:
               AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
-            Action: kms:*
+            Action:
+              - kms:Create*
+              - kms:Describe*
+              - kms:Enable*
+              - kms:List*
+              - kms:Put*
+              - kms:Update*
+              - kms:Revoke*
+              - kms:Disable*
+              - kms:Get*
+              - kms:Delete*
+              - kms:TagResource
+              - kms:UntagResource
+              - kms:ScheduleKeyDeletion
+              - kms:CancelKeyDeletion
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
             Resource: '*'
           - Sid: AllowS3Service
             Effect: Allow
@@ -51,7 +69,7 @@ Resources:
               Service: s3.amazonaws.com
             Action:
               - kms:Decrypt
-              - kms:GenerateDataKey*
+              - kms:GenerateDataKey
             Resource: '*'
       Tags:
         - Key: Purpose
@@ -117,9 +135,15 @@ Resources:
         - Key: ManagedBy
           Value: CloudFormation
 
-  # S3 Bucket Policy
+  # S3 Bucket Policy - Enforces TLS for all S3 operations
+  # trivy:ignore:AVD-AWS-0057 - Wildcard in Deny policy is intentional to block ALL non-TLS requests
   TerraformStateBucketPolicy:
     Type: AWS::S3::BucketPolicy
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: F16
+            reason: "Wildcard principal with Deny effect is intentional - enforces TLS for all callers"
     Properties:
       Bucket: !Ref TerraformStateBucket
       PolicyDocument:
