@@ -1,6 +1,7 @@
 # GitHub Repository Management
 # Creates and manages repositories based on repositories.yaml
 
+# tfsec:ignore:AVD-GIT-0001 - Public visibility is intentional for portfolio repositories
 resource "github_repository" "managed" {
   for_each = local.repositories
 

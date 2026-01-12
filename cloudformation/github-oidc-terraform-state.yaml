@@ -46,9 +46,60 @@ Resources:
         - Key: Purpose
           Value: GitHub Actions OIDC
 
+  # KMS Key for S3 Bucket Encryption
+  TerraformStateKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: KMS key for Terraform state bucket encryption
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: EnableRootAccountAccess
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action:
+              - kms:Create*
+              - kms:Describe*
+              - kms:Enable*
+              - kms:List*
+              - kms:Put*
+              - kms:Update*
+              - kms:Revoke*
+              - kms:Disable*
+              - kms:Get*
+              - kms:Delete*
+              - kms:ScheduleKeyDeletion
+              - kms:CancelKeyDeletion
+              - kms:GenerateDataKey
+              - kms:Decrypt
+              - kms:Encrypt
+              - kms:ReEncrypt*
+              - kms:TagResource
+              - kms:UntagResource
+            Resource: '*'
+      Tags:
+        - Key: Purpose
+          Value: Terraform State Encryption
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  TerraformStateKMSKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub 'alias/terraform-state-${GitHubRepo}'
+      TargetKeyId: !Ref TerraformStateKMSKey
+
   # S3 Bucket for Terraform State
   TerraformStateBucket:
     Type: AWS::S3::Bucket
+    # checkov:skip=CKV_AWS_18: "Access logging not required for Terraform state bucket in portfolio project"
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W35
+            reason: Access logging not required for Terraform state bucket in portfolio project
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
@@ -56,7 +107,8 @@ Resources:
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !GetAtt TerraformStateKMSKey.Arn
             BucketKeyEnabled: true
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
@@ -103,7 +155,13 @@ Resources:
   # IAM Role for GitHub Actions
   GitHubActionsRole:
     Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: Role name must be stable for GitHub OIDC trust and external references
     Properties:
+      # trivy:ignore:AVD-AWS-0057
       RoleName: !Sub 'github-actions-${GitHubRepo}'
       Description: !Sub 'Role for GitHub Actions in ${GitHubOrg}/${GitHubRepo}'
       MaxSessionDuration: 3600
@@ -127,16 +185,27 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
-              - Sid: S3StateAccess
+              - Sid: S3BucketAccess
+                Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt TerraformStateBucket.Arn
+              - Sid: S3ObjectAccess
                 Effect: Allow
                 Action:
                   - s3:GetObject
                   - s3:PutObject
                   - s3:DeleteObject
-                  - s3:ListBucket
                 Resource:
-                  - !GetAtt TerraformStateBucket.Arn
-                  - !Sub '${TerraformStateBucket.Arn}/*'
+                  - !Sub '${TerraformStateBucket.Arn}/${GitHubRepo}/*'
+              - Sid: KMSAccess
+                Effect: Allow
+                Action:
+                  - kms:Decrypt
+                  - kms:GenerateDataKey
+                Resource:
+                  - !GetAtt TerraformStateKMSKey.Arn
       Tags:
         - Key: Purpose
           Value: GitHub Actions Terraform
@@ -165,6 +234,12 @@ Outputs:
     Export:
       Name: !Sub '${AWS::StackName}-StateBucketArn'
 
+  KMSKeyArn:
+    Description: ARN of the KMS key for Terraform state encryption
+    Value: !GetAtt TerraformStateKMSKey.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-KMSKeyArn'
+
   GitHubActionsRoleArn:
     Description: ARN of the IAM role for GitHub Actions
     Value: !GetAtt GitHubActionsRole.Arn
@@ -181,5 +256,6 @@ Outputs:
           region       = "${AWS::Region}"
           use_lockfile = true
           encrypt      = true
+          kms_key_id   = "${TerraformStateKMSKey.Arn}"
         }
       }
