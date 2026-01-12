@@ -147,7 +147,6 @@ Resources:
                 aws:SecureTransport: 'false'
 
   # IAM Role for GitHub Actions
-  # trivy:ignore:AVD-AWS-0057 OIDC trust policy requires wildcard for branch/ref flexibility
   GitHubActionsRole:
     Type: AWS::IAM::Role
     Properties:

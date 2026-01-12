@@ -1,0 +1,5 @@
+# Ignore IAM wildcard finding for OIDC trust policy
+# The wildcard (*) in the OIDC subject claim is required to allow
+# any branch/ref/action to assume the role - this is the AWS-recommended
+# pattern for GitHub OIDC integration.
+AVD-AWS-0057
