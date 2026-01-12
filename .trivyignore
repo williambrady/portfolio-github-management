@@ -7,4 +7,4 @@
 # (repo:org/repo:*) is the AWS-recommended pattern for GitHub OIDC
 # integration, allowing any branch/ref/action to assume the role.
 # See: https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services
-AVD-AWS-0057
+AVD-AWS-0057:cloudformation/github-oidc-terraform-state.yaml
