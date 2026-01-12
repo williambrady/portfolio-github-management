@@ -116,8 +116,8 @@ jobs:
           JSON_REPORT=$(find "$REPORT_DIR" -name "*.json" -type f 2>/dev/null | head -1)
 
           if [[ -f "$JSON_REPORT" ]]; then
-            # Extract top 5 findings formatted for markdown
-            FINDINGS_MD=$(python3 -c "
+            # Extract top 5 findings formatted for markdown, output as JSON-encoded string
+            FINDINGS_JSON=$(python3 -c "
           import json
 
           with open('$JSON_REPORT', 'r') as f:
@@ -127,36 +127,35 @@ jobs:
           severity_order = {'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3, 'INFO': 4}
           findings.sort(key=lambda x: severity_order.get(x.get('severity', 'INFO'), 5))
 
+          lines = []
+
           # Get scanners run
           scanners = data.get('metadata', {}).get('scanners_run', [])
           if scanners:
-              print('**Scanners:** ' + ', '.join(scanners))
-              print()
+              lines.append('**Scanners:** ' + ', '.join(scanners))
+              lines.append('')
 
           if findings:
-              print('### Top Findings')
-              print()
+              lines.append('### Top Findings')
+              lines.append('')
               for i, f in enumerate(findings[:5]):
-                  sev = f.get('severity', 'UNKNOWN')
+                  sev = f.get('severity', 'INFO')
                   tool = f.get('tool', 'unknown')
-                  rule = f.get('rule_id', 'N/A')
                   title = f.get('title', f.get('rule_id', 'Unknown'))
                   file_path = f.get('file_path', 'N/A')
-                  line = f.get('line_number', '')
-                  loc = f'{file_path}:{line}' if line else file_path
+                  line = f.get('line_number')
+                  loc = f'{file_path}:{line}' if line is not None else file_path
                   emoji = {'CRITICAL': ':red_circle:', 'HIGH': ':orange_circle:', 'MEDIUM': ':yellow_circle:', 'LOW': ':white_circle:'}.get(sev, ':white_circle:')
-                  print(f'{i+1}. {emoji} **{sev}** [{tool}] {title}')
-                  print(f'   \`{loc}\`')
+                  lines.append(f'{i+1}. {emoji} **{sev}** [{tool}] {title}')
+                  lines.append(f'   \`{loc}\`')
+
+          # Output as JSON-encoded string to safely pass to JavaScript
+          print(json.dumps('\\n'.join(lines)))
           ")
 
-            # Use delimiter for multiline output
-            {
-              echo "findings_detail<<EOF"
-              echo "$FINDINGS_MD"
-              echo "EOF"
-            } >> "$GITHUB_OUTPUT"
+            echo "findings_detail=$FINDINGS_JSON" >> "$GITHUB_OUTPUT"
           else
-            echo "findings_detail=" >> "$GITHUB_OUTPUT"
+            echo 'findings_detail=""' >> "$GITHUB_OUTPUT"
           fi
 
       - name: Comment PR with Results
@@ -170,7 +169,15 @@ jobs:
             const medium = '${{ steps.security-scan.outputs.medium-count }}';
             const low = '${{ steps.security-scan.outputs.low-count }}';
             const status = '${{ steps.security-scan.outputs.scan-status }}';
-            const findingsDetail = `${{ steps.top-findings.outputs.findings_detail }}`;
+
+            // Parse JSON-encoded findings detail
+            let findingsDetail = '';
+            try {
+              const jsonStr = ${{ steps.top-findings.outputs.findings_detail }};
+              findingsDetail = typeof jsonStr === 'string' ? jsonStr : '';
+            } catch (e) {
+              console.log('Could not parse findings detail:', e.message);
+            }
 
             const statusEmoji = status === 'passed' ? ':white_check_mark:' : ':x:';
 
