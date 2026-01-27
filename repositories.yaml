@@ -115,3 +115,12 @@ repositories:
       - cloudformation
       - sdlc
       - projectmanagement
+
+  - name: portfolio-aws-health
+    description: "AWS health monitoring and dashboards"
+    visibility: public
+    topics:
+      - portfolio
+      - aws
+      - health
+      - monitoring
