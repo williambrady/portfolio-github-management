@@ -124,3 +124,37 @@ repositories:
       - aws
       - health
       - monitoring
+
+  - name: portfolio-aws-org-baseline
+    description: "AWS Organization baseline configuration"
+    visibility: public
+    topics:
+      - portfolio
+      - aws
+      - organization
+      - baseline
+      - iac
+      - compliance
+      - nist-800-53
+      - cis
+      - aws-security-best-practices
+      - security-hub
+      - inspector
+      - guardduty
+
+  - name: portfolio-aws-account-baseline
+    description: "AWS Account baseline configuration"
+    visibility: public
+    topics:
+      - portfolio
+      - aws
+      - account
+      - baseline
+      - iac
+      - compliance
+      - nist-800-53
+      - cis
+      - aws-security-best-practices
+      - security-hub
+      - inspector
+      - guardduty
